@@ -10,42 +10,7 @@ library(kableExtra)
 library(rowr)
 
 # load in datasets
-vt_data <- read.csv("~/Downloads/Virginia_Tech_Stats - Sheet1.csv", header = FALSE)
-vt_rows <- nrow(vt_data)
-uva.bb <- read.csv("~/Downloads/UVA_Stats - Sheet1.csv", header = FALSE)
-uva_rows <- nrow(uva.bb)
-gonzaga.bb <- read.csv("~/Downloads/Gonzaga_Stat - Sheet1.csv", header = FALSE)
-gonzaga_rows <- nrow(gonzaga.bb)
-michiganSt.bb <- read.csv("~/Downloads/MichiganSt_Stat - Sheet1.csv", header = FALSE)
-michiganSt_rows <- nrow(michiganSt.bb)
-northCarolina.bb <- read.csv("~/Downloads/North_Carolina_Stat - Sheet1.csv", header = FALSE)
-northCarolina_rows <- nrow(northCarolina.bb)
-duke.bb <- read.csv("~/Downloads/Duke_Stat - Sheet1.csv", header = FALSE)
-duke_rows <- nrow(duke.bb)
-michigan.bb <- read.csv("~/Downloads/Michigan_Stats - Sheet1.csv", header = FALSE)
-michigan_rows <- nrow(michigan.bb)
-kentucky.bb <- read.csv("~/Downloads/Kentucky_Stats - Sheet1.csv", header = FALSE)
-kentucky_rows <- nrow(kentucky.bb)
-texasTech.bb <- read.csv("~/Downloads/Texas_Tech_Stats - Sheet1.csv", header = FALSE)
-texasTech_rows <- nrow(texasTech.bb)
-purdue.bb <- read.csv("~/Downloads/Purdue_Stats - Sheet1.csv", header = FALSE)
-purdue_rows <- nrow(purdue.bb)
-tennessee.bb <- read.csv("~/Downloads/Tennessee_Stats - Sheet1.csv", header = FALSE)
-tennessee_rows <- nrow(tennessee.bb)
-houston.bb <- read.csv("~/Downloads/Houston_Stats - Sheet1.csv", header = FALSE)
-houston_rows <- nrow(houston.bb)
-auburn.bb <- read.csv("~/Downloads/Auburn_Stats - Sheet1.csv", header = FALSE)
-auburn_rows <- nrow(auburn.bb)
-floridaSt.bb <- read.csv("~/Downloads/Florida_St_Stats - Sheet1.csv", header = FALSE)
-floridaSt_rows <- nrow(floridaSt.bb)
-lsu.bb <- read.csv("~/Downloads/LSU - Sheet1.csv", header = FALSE)
-lsu_rows <- nrow(lsu.bb)
-floridaSt.bb <- read.csv("~/Downloads/Florida_St_Stats - Sheet1.csv", header = FALSE)
-floridaSt_rows <- nrow(floridaSt.bb)
-lsu.bb <- read.csv("~/Downloads/LSU - Sheet1.csv", header = FALSE)
-lsu_rows <- nrow(lsu.bb)
-oregon.bb <- read.csv("~/Downloads/Oregon_Stats - Sheet1.csv", header = FALSE)
-oregon_rows <- nrow(oregon.bb)
+
 
 #combine all datasets into one (going down into rows)
 sweet16 <- rbind.fill(vt_data, uva.bb,
@@ -322,3 +287,183 @@ home.game.count2 <- length(x.home2) - length(which(is.na(x.home2)))
 #combine top sweet 16 with the rest of 48 teams for 2019
 colnames(mm2019_df)[colnames(mm2019_df)=="School2"] <- "School" 
 tourn2019 <- rbind(s16.df, mm2019_df)
+
+####################################################################################
+# get the piechart of 2019 statistics for loses
+loses19.home <- length(which(tourn2019$Win_Lost == "L" & tourn2019$Location == "Home"))
+loses19.away <- length(which(tourn2019$Win_Lost == "L" & tourn2019$Location == "Away"))
+loses19.neutral <- length(which(tourn2019$Win_Lost == "L" & tourn2019$Location == "Neutral"))
+lossSum <- length(which(tourn2019$Win_Lost == "L"))
+
+loss.df <- data.frame(
+  group = c( "Away","Home","Neutral"),
+  value = c( loses19.away,loses19.home, loses19.neutral)
+)
+
+bp <- ggplot(loss.df, aes(x="", y=value, fill=group))+
+  geom_bar(width = 1, stat = "identity")
+bp
+pie <- bp + coord_polar("y") + labs(title = "Loss Percentages by Location", x = "", y = "")
+
+pie <- pie + scale_fill_brewer(palette="Reds")+
+  theme_minimal()+ geom_text(aes(label = paste0(
+    scales::percent(value / sum(value))
+  )), 
+  position = position_stack(vjust = 0.5))
+pie
+
+#####################################################################################
+# make new data frame
+char_array = c(names, names2)
+naming = data.frame("name.data"=char_array,"name.data2"=1:64)
+naming$name.data = toupper(substr(naming$name.data,1,nchar(char_array)-3))
+
+# get win-loss percentage
+# get the accurate number for team split 
+#gets the last range of the school
+cum.team_split1 <-  cumsum(numRows - (numRowsCum - (post_rows-1)))
+cum.team_split2 <-  cumsum(numRows2 - (numRowsCum2 - (post_rows2-1)))
+sumTeamCumSplit <- c(cum.team_split1, cum.team_split1[16] + cum.team_split2)
+
+win.per <- 0
+lost.per <- 0
+for (i in 1:length(sumTeamCumSplit)){ #increment
+  win.per[i] <- length(which(tourn2019$School == char_array[i] & tourn2019$Win_Lost == "W"))
+  lost.per[i] <- length(which(tourn2019$School == char_array[i] & tourn2019$Win_Lost == "L"))
+}
+
+stat2019 <- cbind("Team" = naming$name.data, "Wins" = win.per, "Loses" = lost.per, "(W-L)%" = win.per/(win.per +lost.per))
+stat2019 <- data.frame(stat2019)
+#####################################################################################
+# strength of schedule
+sos <- read.csv("~/Downloads/StrengthOfSchedule - Sheet1.csv", header = FALSE)
+
+colnames(sos) <- c("RANK","SCHOOL",	"W-L"	,"SOS",	"OPPONENT WINNING PCT."	,"RANK"	,"W-L",	"SOS",	"RANK",	"RPI")
+sos$SCHOOL <- toupper(sos$SCHOOL)
+
+j <- 1
+i <- 1
+sos.score <- 0
+while (j < nrow(sos)){
+  while (i <= length(stat2019$Team)){
+    if (sos$SCHOOL[j] == stat2019$Team[i]){
+      sos.score[i] <- sos$SOS[j]
+      i <- i + 1
+      j <- 1
+    }
+    else{
+      j <- j + 1
+    }
+  }
+  if (!is.na(sos.score[length(stat2019$Team)])){
+    break
+  }
+}
+
+stat2019 <- cbind(stat2019, "SOS" = sos.score)
+
+# march madness outcomes
+stages <- c(4, 1, 3, 2, 3, 4, 4, 3, 1, 3, 4, 4, 2, 4, 4, 4, 6, 6, 5, 6, 6, 5, 6, 6, 6, 5, 6, 6, 6, 5, 6, 5, 6, 5, 6, 6, 5, 5, 6, 6, 5, 6, 6, 6, 6, 6, 5, 5, 6, 6, 6, 6, 6, 6, 5, 5, 6, 6, 6, 5, 5, 5, 5, 6)
+
+stat2019 <- cbind(stat2019, stages)
+
+#####################################################################################
+# massey
+
+massey.data <- read.csv("~/Downloads/Massey - Sheet1.csv", header = FALSE)
+head(massey.data)
+
+def <- str_sub(massey.data$V6, -5, -1)
+off <- str_sub(massey.data$V3, -6, -1)
+check.off <- which(substring(off, 1, 1) == 1)
+partial.off <- as.numeric(substring(off, 2))
+
+mOff <- c(96.07, 96.04, 105.17, 101.25, 105.17, 94.38, 108.56,97.81,97.73,102.77,104.77,96.40,103.86,98.41,103.38,91.09,87.33,97.74,95.96,101.27,85.03,103.70,93.59,93.01,90.10,90.52,92.01,94.36,92.77,101.42,100.20,100.16,89.37,88.76,96.49,96.79,93.91,95.50,100.38,90.20,97.92,96.75,94.33,86.32,92.92,93.57,92.02,96.14,82.85,96.65,86.47,91.42,95.45,92.64,93.47,91.28,96.29,90.18,90.23,94.65,90.89,91.33,98.56,99.22)
+mDef <- c(31.13, 38.15, 26.92, 31.88, 26.94, 36.57, 22.46,32.95,35.20,26.15,24.00,31.99,26.48,28.72,21.09,32.87,21.69,19.78,24.88,18.21,22.90,20.37,29.63,17.98,15.24,32.63,15.86,18.76,12.82,19.71,26.05,25.69,34.92,88.76,25.45,22.85,28.26,25.19,23.29,19.87,21.96,22.09,24.29,12.77,21.48,19.40,27.37,26.19,28.46,21.60,26.72,30.62,22.20,26.06,28.62,24.53,22.20,26.17,24.60,27.16,28.58,32.11,26.54,15.75)
+#####################################################################################
+# kenpom  
+
+kenpom <- read.csv("~/Downloads/kenpom - Sheet1.csv", header = FALSE)
+head(kenpom)
+
+schools <- toupper(kenpom$V2)
+schools <- substr(schools, 1, nchar(schools)-1) 
+schools <- substr(schools, 1, nchar(schools)-1) 
+adjO <- c(118.1, 123.4, 124.5, 121.0, 120, 114.5, 119.7, 117.6, 114.1, 122.5, 122.7, 115.3, 120.9, 112.8, 117.7, 109.5, 103.4, 109.7, 115.3, 115.6, 101.5, 115.2, 112.3, 112.4, 110.5, 106.5, 107.8, 107.7, 106.9,117.4,118.9, 113.9, 108.4, 111.1, 113.7,113.2, 110.2, 113.4, 111.4, 117.7, 107.4, 112.5, 114.0, 113.0, 107.4,111.0, 109.4,101.4,113.2, 104.2, 102.2,114.7,109.0,110.5, 112.1, 107.4, 112.6, 104.3 , 108.5, 116.5, 107.7, 110.4, 118.1, 111.6)
+adjD <- c(94.0, 89.2, 91.6, 90.2, 89.3, 86.2, 92.0, 90.1,84.1, 95.6,96.5 , 91.2, 95.9, 90.4, 97.5,91.7, 102.0, 98.2, 98.8,101.5, 101.4,95.4, 94.8, 105.9, 110.7, 92.2,107.8, 102.8,109.7,101.3, 96.8, 92.3,88.4, 99.6, 94.4, 96.7, 94.1,97.0,97.6, 103.9,98.6, 95.9, 99.3,110.6, 103.4, 102.3,94.4,94.1,96.0,99.2,96.2,97.4,97.5,95.3,95.6,98.2,97.2, 89.5, 99.6,99.2,93.5,88.5,97.4, 102.8)
+
+stat2019 <- cbind(stat2019, adjO, adjD)
+stat2019 <- cbind(stat2019, mOff, mDef)
+
+       
+#####################################################################################
+
+ggplot(stat2019, aes(SOS,adjD, color = clusters)) + geom_point()
+ggplot(stat2019, aes(SOS,mDef, color = clusters)) + geom_point()
+
+set.seed(2)
+bbCluster <- kmeans(stat2019[, 4:5], 6, nstart = 20)
+bbCluster
+
+table(bbCluster$cluster, bbCluster$cluster)
+
+stat2019.c <- stat2019[,-6]
+stat2019.c <- stat2019.c[,-1]
+
+# K-Means Cluster Analysis
+fit <- kmeans(stat2019.c, 6) # 5 cluster solution
+# get cluster means 
+aggregate(stat2019.c,by=list(fit$cluster),FUN=mean)
+# append cluster assignment
+mydata <- data.frame(stat2019.c, fit$cluster)
+
+# vary parameters for most readable graph
+head(stat2019.c)
+clusplot(mydata, fit$cluster, color=TRUE, shade=TRUE, labels=4, lines=0, main = "CLUSPLOT of Stages in March Madness")
+
+library(rsample)      # data splitting 
+library(randomForest) # basic implementation
+library(ranger)       # a faster implementation of randomForest
+library(caret)        # an aggregator package for performing many machine learning models
+#library(h2o)          # an extremely fast java-based platform
+library(party)
+
+# Create the forest.
+output.forest <- randomForest(stages ~ mOff + mDef, 
+                              data = stat2019)
+
+#stat2019$X.W.L..
+# View the forest results.
+print(output.forest) 
+
+# Importance of each predictor.
+print(importance(fit,type = 2)) 
+
+
+# Set random seed to make results reproducible:
+set.seed(17)
+
+colnames(stat2019.cc) <- c("Teams", "Wins", "Loses", "W/L.Per", "Adj.O", "Adj.D", "Mas.O", "Mas.D")
+
+#remove teams
+stat2019.cc <- stat2019[,-1]
+stat2019.cc$stages <- as.factor(stat2019.cc$stages)
+# Calculate the size of each of the data sets:
+data_set_size <- floor(nrow(stat2019.cc)/2)
+# Generate a random sample of "data_set_size" indexes
+indexes <- sample(1:nrow(stat2019.cc), size = data_set_size)
+# Assign the data to the correct sets
+training <- stat2019.cc[indexes,]
+training$stages <- as.factor(training$stages)
+validation1 <- stat2019.cc[-indexes,]
+
+new.dat <- droplevels(stat2019.cc)
+rf1 <- ranger(stages~., data=new.dat)
+rf2 <- ranger(stages~ adjO + adjD, data=new.dat)
+fit3 <- randomForest(factor(stages)~., data=training, importance = TRUE)
+VI_F=varImp(fit3)
+importance(fit3)
+varImpPlot(VI_F,type=2)
+
+#rf_classifier = randomForest(stages ~ X.W.L.. + SOS + adjO + adjD + mOff +mDef, data=training, ntree=100,importance=TRUE)
+
